@@ -1,0 +1,39 @@
+# Local dependencies. Start with: make deps
+# Host ports are unusual on purpose, so they don't collide with other projects'
+# Postgres/Redis; override with RENORA_PG_PORT / RENORA_REDIS_PORT.
+name: renora
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    environment:
+      POSTGRES_USER: renora
+      POSTGRES_PASSWORD: renora
+      POSTGRES_DB: renora
+    ports:
+      - "127.0.0.1:${RENORA_PG_PORT:-55432}:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<major>/.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U renora -d renora"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${RENORA_REDIS_PORT:-56379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
+  redis-data:
